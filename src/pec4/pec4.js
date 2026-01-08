@@ -13,23 +13,46 @@ export class Piece {
 
 // Exercise 1: GameConfig (1p)
 export class GameConfig {
+    //Constructor con valores por defecto
     constructor() {
+        this.size = 8;
+        this.currentPlayer = 'white';
     }
 
     setSize(newSize) {
+        let size = Math.floor(newSize);
+
+        if (size < 4) {
+            size = 4;
+        } else if (size > 16) {
+            size = 16;
+        }
+
+        this.size = size;
     }
     getPieceRows() {
+        if (this.size < 8) {
+            return 2;
+        } else if (this.size <= 11) {
+            return 3;
+        } else {
+            return 4;
+        }
     }
 
     initialize() {
+        this.currentPlayer = 'white';
     }
 
     switchPlayer() {
+        this.currentPlayer =
+            this.currentPlayer === 'white' ? 'black' : 'white';
     }
 }
 
 // Exercise 2: Board (1.5p)
 export class Board {
+
     constructor(gameConfig) {
     }
 

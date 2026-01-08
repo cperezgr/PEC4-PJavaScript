@@ -54,37 +54,69 @@ export class GameConfig {
 export class Board {
 
     constructor(gameConfig) {
+        this.gameConfig = gameConfig;
+        this.size = gameConfig.size;
+
+        this.board = Array.from({ length: this.size }, () =>
+            Array(this.size).fill(null)
+        );
     }
 
     generate() {
+        const rowsWithPieces = this.gameConfig.getPieceRows();
+
+        // Crear tablero vacío
+        this.board = Array.from({ length: this.size }, () =>
+            Array(this.size).fill(null)
+        );
+
+        // Fichas negras (parte superior)
+        for (let row = 0; row < rowsWithPieces; row++) {
+            for (let col = 0; col < this.size; col++) {
+                if ((row + col) % 2 !== 0) {
+                    this.board[row][col] = new Piece('black', false);
+                }
+            }
+        }
+
+        // Fichas blancas (parte inferior)
+        for (let row = this.size - rowsWithPieces; row < this.size; row++) {
+            for (let col = 0; col < this.size; col++) {
+                if ((row + col) % 2 !== 0) {
+                    this.board[row][col] = new Piece('white', false);
+                }
+            }
+        }
+    }
+
+    //validación para los límites de filas o columnas
+    isOutOfBounds(row, col) {
+        return (
+            row < 0 ||
+            col < 0 ||
+            row >= this.size ||
+            col >= this.size
+        );
     }
 
     getPiece(row, col) {
+        if (this.isOutOfBounds(row, col)) {
+            return null;
+        }
+        return this.board[row][col];
     }
 
     setPiece(row, col, piece) {
+        this.board[row][col] = piece;
     }
 
     isEmpty(row, col) {
+        return this.board[row][col] === null;
     }
 }
 
 // Exercise 3: GameLogic (3p)
 class GameLogic {
-    constructor(board, config) {
-    }
-
-    isValidMove(fromRow, fromCol, toRow, toCol) {
-    }
-
-    isValidCapture(fromRow, fromCol, toRow, toCol) {
-    }
-
-    movePiece(fromRow, fromCol, toRow, toCol) {
-    }
-
-    checkGameOver() {
-    }
 }
 
 export default GameLogic

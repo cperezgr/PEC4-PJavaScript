@@ -117,6 +117,169 @@ export class Board {
 
 // Exercise 3: GameLogic (3p)
 class GameLogic {
+    constructor(board, config) {
+        this.board = board;
+        this.config = config;
+        this.selectedPiece = null;
+        this.gameOver = false;
+        this.winner = null;
+    }
+
+    isValidMove(fromRow, fromCol, toRow, toCol) {
+        if (!((toRow + toCol) % 2 === 1))
+            return false;
+
+        const piece = this.board.getPiece(fromRow, fromCol);
+        if (!piece) return false;
+
+        if (!this.board.isEmpty(toRow, toCol)) return false;
+
+        const rowDiff = toRow - fromRow;
+        const colDiff = Math.abs(toCol - fromCol);
+
+        if (colDiff !== 1) return false;
+
+        if (piece.isKing) {
+            return Math.abs(rowDiff) === 1;
+        }
+
+        const forward = piece.player === 'white' ? -1 : 1;
+        return rowDiff === forward;
+    }
+
+    isValidCapture(fromRow, fromCol, toRow, toCol) {
+        if (!((toRow + toCol) % 2 === 1))
+            return false;
+
+        const piece = this.board.getPiece(fromRow, fromCol);
+        if (!piece) return false;
+
+        if (!this.board.isEmpty(toRow, toCol)) return false;
+
+        const rowDiff = toRow - fromRow;
+        const colDiff = toCol - fromCol;
+
+        if (Math.abs(rowDiff) !== 2 || Math.abs(colDiff) !== 2) return false;
+
+        const midRow = (fromRow + toRow) / 2;
+        const midCol = (fromCol + toCol) / 2;
+
+        const middlePiece = this.board.getPiece(midRow, midCol);
+        if (!middlePiece || middlePiece.player === piece.player) return false;
+
+        if (piece.isKing) return true;
+
+        const forward = (piece.player === 'white' ? -1 : 1);
+        return rowDiff === 2 * forward;
+    }
+
+    movePiece(fromRow, fromCol, toRow, toCol) {
+        if (this.gameOver) return false;
+
+        const piece = this.board.getPiece(fromRow, fromCol);
+        if (!piece) return false;
+
+        if (piece.player !== this.config.currentPlayer) {
+            return false;
+        }
+
+        const isCapture = this.isValidCapture(fromRow, fromCol, toRow, toCol);
+        const isMove = this.isValidMove(fromRow, fromCol, toRow, toCol);
+
+        if (!isCapture && !isMove) return false;
+
+        if (isCapture) {
+            const midRow = (fromRow + toRow) / 2;
+            const midCol = (fromCol + toCol) / 2;
+            this.board.setPiece(midRow, midCol, null);
+        }
+
+        this.board.setPiece(toRow, toCol, piece);
+        this.board.setPiece(fromRow, fromCol, null);
+
+        // Promoción
+        if (!piece.isKing) {
+            if (
+                (piece.player === 'white' && toRow === 0) ||
+                (piece.player === 'black' && toRow === this.board.size - 1)
+            ) {
+                piece.isKing = true;
+            }
+        }
+
+        this.config.switchPlayer();
+        return true;
+    }
+
+    checkGameOver() {
+
+        //Antes de nada reseteo el estado
+        this.gameOver = false;
+        this.winner = null;
+
+        let whitePieces = 0;
+        let blackPieces = 0;
+
+        // Cuento las fichas que hay blancas y negras
+        for (let row = 0; row < this.board.size; row++) {
+            for (let col = 0; col < this.board.size; col++) {
+                const piece = this.board.getPiece(row, col);
+                if (piece) {
+                    if (piece.player === 'white') whitePieces++;
+                    if (piece.player === 'black') blackPieces++;
+                }
+            }
+        }
+
+        // Si uno de los jugadores se queda sin fichas se acaba el juego
+        if (whitePieces === 0 && blackPieces > 0) {
+            this.gameOver = true;
+            this.winner = 'black';
+            return;
+        }
+
+        if (blackPieces === 0 && whitePieces > 0) {
+            this.gameOver = true;
+            this.winner = 'white';
+            return;
+        }
+
+        // Si un jugador se queda sin poder realizar movimientos, se acaba el juego
+        const player = this.config.currentPlayer;
+        let hasMove = false;
+
+        const directions = [
+            [-1, -1], [-1, 1],
+            [1, -1], [1, 1],
+            [-2, -2], [-2, 2],
+            [2, -2], [2, 2]
+        ];
+
+        for (let row = 0; row < this.board.size && !hasMove; row++) {
+            for (let col = 0; col < this.board.size && !hasMove; col++) {
+                const piece = this.board.getPiece(row, col);
+                if (piece && piece.player === player) {
+                    for (const [dr, dc] of directions) {
+                        const tr = row + dr;
+                        const tc = col + dc;
+
+                        if (
+                            this.isValidMove(row, col, tr, tc) ||
+                            this.isValidCapture(row, col, tr, tc)
+                        ) {
+                            hasMove = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!hasMove) {
+            this.gameOver = true;
+            this.winner = player === 'white' ? 'black' : 'white';
+        }
+    }
 }
 
 export default GameLogic
@@ -126,18 +289,23 @@ export class UI {
     constructor(gameLogic, onRestart) {
     }
 
+
     setupSizeInput() {
     }
 
     setupRestartButton() {
     }
 
+
     renderBoard() {
     }
+
 
     // Exercise 4.2: UI (1.5 points)
     handleCellClick(row, col) {
     }
+
+
 
     showGameStatus(status) {
     }

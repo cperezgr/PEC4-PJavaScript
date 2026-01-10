@@ -263,10 +263,13 @@ class GameLogic {
                         const tr = row + dr;
                         const tc = col + dc;
 
-                        if (
-                            this.isValidMove(row, col, tr, tc) ||
-                            this.isValidCapture(row, col, tr, tc)
-                        ) {
+                        if (tr < 0 || tr >= this.board.size ||
+                            tc < 0 || tc >= this.board.size) {
+                            continue;
+                        }
+
+                        if (this.isValidMove(row, col, tr, tc) ||
+                            this.isValidCapture(row, col, tr, tc)) {
                             hasMove = true;
                             break;
                         }
@@ -287,25 +290,171 @@ export default GameLogic
 // Exercise 4.1: UI (2 points)
 export class UI {
     constructor(gameLogic, onRestart) {
+
+        this.gameLogic = gameLogic; // instancia de GameLogic pasada por parámetro
+        this.gameBoard = document.getElementById('game-board');
+        this.onRestart = typeof onRestart === 'function' ? onRestart : () => { };
+        this.controlsDiv = null; // se creará en setupSizeInput
+
+        // Inicialización de controles de UI
+        this.setupSizeInput();
+        this.setupRestartButton();
+
     }
 
 
     setupSizeInput() {
+
+        // Contenedor principal
+        const container = document.querySelector('.container');
+        if (!container) return; // si no existe, evitamos errores en tests/DOM
+
+        // Crear/reutilizar div de controles
+        if (!this.controlsDiv || !document.body.contains(this.controlsDiv)) {
+            this.controlsDiv = document.createElement('div');
+            this.controlsDiv.classList.add('controls');
+            container.appendChild(this.controlsDiv);
+        }
+
+
+        // Si ya existe el input, no se crea un duplicado. 
+        const existingInput = document.getElementById('board-size');
+        const existingLabel = document.querySelector('label[for="board-size"]');
+        if (existingInput) {
+            // Si el input existe pero no está bajo controlsDiv, lo movemos
+            if (!this.controlsDiv.contains(existingInput)) {
+                // Colocar primero el label (si existe) y luego el input
+                if (existingLabel && !this.controlsDiv.contains(existingLabel)) {
+                    this.controlsDiv.appendChild(existingLabel);
+                }
+                this.controlsDiv.appendChild(existingInput);
+            }
+            // Ya está todo, no crear nada más
+            return;
+        }
+
+        // Label para el input de tamaño
+        const label = document.createElement('label');
+        label.textContent = 'Board size: ';
+        label.htmlFor = 'board-size';
+
+        // Input de tamaño
+        const input = document.createElement('input');
+        input.id = 'board-size';
+        input.type = 'number';
+        input.min = '4';
+        input.max = '16';
+        input.value = '8';
+
+        // Añadir al contenedor de controles
+        this.controlsDiv.appendChild(label);
+        this.controlsDiv.appendChild(input);
+
     }
 
     setupRestartButton() {
+
+        // Me aseguro de que existe el contenedor de controles y que está en el DOM
+        if (!this.controlsDiv || !document.body.contains(this.controlsDiv)) {
+            this.setupSizeInput();
+        }
+
+        // Si ya existe el botón de inicio lo reutilizo; si no, lo creo
+        let button = document.getElementById('restart');
+        if (!button) {
+            button = document.createElement('button');
+            button.id = 'restart';
+            button.textContent = 'Restart Match';
+        }
+
+        // Evento click único (sobrescribe handlers anteriores)
+        button.onclick = () => {
+            const status = document.getElementById('game-status');
+            if (status) status.remove();
+            const current = document.getElementById('current-player');
+            if (current) current.remove();
+
+            // Ejecutar callback proporcionado
+            this.onRestart();
+        };
+
+        // Asegurar que el botón está en el contenedor de controles
+        if (!this.controlsDiv.contains(button)) {
+            this.controlsDiv.appendChild(button);
+        }
+
     }
 
 
     renderBoard() {
+        //Limpiar tablero
+        if (!this.gameBoard) return;
+        this.gameBoard.innerHTML = '';
+
+        //Clases del tablero
+        this.gameBoard.classList.add('game-board', 'checkerboard');
+
+        const size = this.gameLogic.board.size;
+
+        //Ajustar columnas del grid al tamaño actual del tablero porque al probar el tablero en
+        //distintos tamaños al de por defecto, se descuadraban
+        this.gameBoard.style.display = 'grid';
+        this.gameBoard.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+        this.gameBoard.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+
+        // Si el CSS define un gap, lo puedes mantener o ajustar
+        // this.gameBoard.style.gap = '2px'; // si quieres
+
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+
+                // color alterno
+                if ((row + col) % 2 === 1) {
+                    cell.classList.add('dark');
+                } else {
+                    cell.classList.add('light');
+                }
+
+                // dataset
+                cell.dataset.row = String(row);
+                cell.dataset.col = String(col);
+
+                // pieza si existe
+                const piece = this.gameLogic.board.getPiece(row, col);
+                if (piece) {
+                    const pieceDiv = document.createElement('div');
+                    pieceDiv.classList.add('piece');
+                    pieceDiv.classList.add(piece.player === 'white' ? 'white' : 'black');
+                    if (piece.isKing) pieceDiv.classList.add('king');
+                    cell.appendChild(pieceDiv);
+                }
+
+                // seleccionado
+                if (
+                    this.gameLogic.selectedPiece &&
+                    this.gameLogic.selectedPiece.row === row &&
+                    this.gameLogic.selectedPiece.col === col
+                ) {
+                    cell.classList.add('selected');
+                }
+
+                // manejador de click (se implementará en 4.2)
+                cell.addEventListener('click', () => this.handleCellClick(row, col));
+
+                this.gameBoard.appendChild(cell);
+            }
+        }
+
+        // Mostrar jugador actual (se implementará en 4.2)
+        this.showCurrentPlayer();
     }
 
 
     // Exercise 4.2: UI (1.5 points)
     handleCellClick(row, col) {
     }
-
-
 
     showGameStatus(status) {
     }

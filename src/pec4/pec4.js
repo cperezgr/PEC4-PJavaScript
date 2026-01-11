@@ -541,8 +541,41 @@ export class UI {
 // Exercise 5: Game (1 point)
 export class Game {
     constructor() {
+        this.config = null;
+        this.board = null;
+        this.gameLogic = null;
+        this.ui = null;
     }
 
     start() {
+        //Se lee el tamaño del tablero
+        const sizeInput = document.getElementById('board-size');
+        const size = sizeInput ? Number(sizeInput.value) : null;
+
+        //Configuración del juego
+        this.config = new GameConfig();
+        if (size) {
+            this.config.setSize(size);
+        }
+        this.config.initialize();
+
+        //Se crea el tablero
+        this.board = new Board(this.config);
+        this.board.generate();
+
+        //Llamamos a GameLogic con los valores del tablero y la configuración
+        this.gameLogic = new GameLogic(this.board, this.config);
+
+        //Interfaz de usuario
+        this.ui = new UI(this.gameLogic, () => this.start());
+
+        this.ui.renderBoard();
+
+        //Se comprueba si el juego ya ha terminado
+        this.gameLogic.checkGameOver();
+        if (this.gameLogic.gameOver) {
+            this.ui.showGameStatus(this.gameLogic.winner);
+        }
+
     }
 }

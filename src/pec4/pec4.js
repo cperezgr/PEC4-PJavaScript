@@ -454,12 +454,87 @@ export class UI {
 
     // Exercise 4.2: UI (1.5 points)
     handleCellClick(row, col) {
+
+        const piece = this.gameLogic.board.getPiece(row, col);
+
+        // Si no hay selección → intentar seleccionar
+        if (!this.gameLogic.selectedPiece) {
+            if (piece && piece.player === this.gameLogic.config.currentPlayer) {
+                this.gameLogic.selectedPiece = { row, col };
+            }
+            this.renderBoard();
+            return;
+        }
+
+        // Si sí que hay selección → intentar mover
+        const { row: fromRow, col: fromCol } = this.gameLogic.selectedPiece;
+        //this.gameLogic.movePiece(fromRow, fromCol, row, col);
+        const moved = this.gameLogic.movePiece(fromRow, fromCol, row, col);
+
+        // limpiar selección tras segundo click
+        this.gameLogic.selectedPiece = null;
+
+
+        // 4️⃣ Si se movió, comprobar fin de partida
+        if (moved) {
+            this.gameLogic.checkGameOver();
+            if (this.gameLogic.gameOver) {
+                this.showGameStatus(this.gameLogic.winner);
+            }
+        }
+        //renderizar tras segundo click
+        this.renderBoard();
+
+
     }
 
+
+
     showGameStatus(status) {
+
+        if (status !== 'white' && status !== 'black') return;
+
+        let statusEl = document.getElementById('game-status');
+        if (!statusEl) {
+            statusEl = document.createElement('div');
+            statusEl.id = 'game-status';
+        }
+
+        const winnerText = status === 'white' ? 'White' : 'Black';
+        statusEl.textContent = `${winnerText} wins!`;
+
+        if (this.gameBoard && this.gameBoard.parentElement) {
+            this.gameBoard.insertAdjacentElement('afterend', statusEl);
+        } else {
+            document.body.appendChild(statusEl);
+        }
+
+        setTimeout(() => {
+            const el = document.getElementById('game-status');
+            if (el) el.remove();
+        }, 5000);
+
     }
 
     showCurrentPlayer() {
+
+        // Crear o reutilizar el elemento de turno
+        let turnEl = document.getElementById('current-player');
+        if (!turnEl) {
+            turnEl = document.createElement('div');
+            turnEl.id = 'current-player';
+        }
+
+        const player = this.gameLogic.config.currentPlayer === 'white' ? 'White' : 'Black';
+        turnEl.textContent = `Turn: ${player}`;
+
+        // Insertarlo inmediatamente ANTES del tablero
+        if (this.gameBoard && this.gameBoard.parentElement) {
+            this.gameBoard.insertAdjacentElement('beforebegin', turnEl);
+        } else {
+            document.body.insertBefore(turnEl, document.body.firstChild);
+        }
+
     }
 }
 
